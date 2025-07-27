@@ -411,16 +411,16 @@ class _OnlineStatus(enum.Enum):
 class StatusSensorEntity(SensorEntity, EcoFlowAbstractEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    offline_barrier_sec: int = 120  # 2 minutes
-
     def __init__(
         self,
         client: EcoflowApiClient,
         device: BaseDevice,
         title: str = "Status",
         key: str = "status",
+        offline_barrier_sec: int = 120 # 2 minutes
     ):
         super().__init__(client, device, title, key)
+        self.offline_barrier_sec = offline_barrier_sec
         self._attr_force_update = False
 
         self._online = _OnlineStatus.UNKNOWN
@@ -500,9 +500,13 @@ class QuotaStatusSensorEntity(StatusSensorEntity):
         device: BaseDevice,
         title: str = "Status",
         key: str = "status",
+        offline_barrier_sec: int = 120 # 2 minutes
     ):
-        super().__init__(client, device, title, key)
+        super().__init__(client, device, title, key, offline_barrier_sec=offline_barrier_sec)
         self._attrs[ATTR_QUOTA_REQUESTS] = 0
+
+    def _handle_coordinator_update(self) -> None:
+        super()._handle_coordinator_update()
 
     def _actualize_status(self) -> bool:
         changed = False
@@ -535,8 +539,7 @@ class QuotaScheduledStatusSensorEntity(QuotaStatusSensorEntity):
     def __init__(
         self, client: EcoflowApiClient, device: BaseDevice, reload_delay: int = 3600
     ):
-        super().__init__(client, device, "Status (Scheduled)", "status.scheduled")
-        self.offline_barrier_sec: int = reload_delay
+        super().__init__(client, device, "Status (Scheduled)", "status.scheduled", offline_barrier_sec=reload_delay)
         self._quota_last_update = dt.utcnow()
 
     def _actualize_status(self) -> bool:

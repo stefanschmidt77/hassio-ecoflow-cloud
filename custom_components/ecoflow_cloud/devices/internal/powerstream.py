@@ -2,22 +2,22 @@ import logging
 from collections.abc import Sequence
 from typing import Any, cast, override
 
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.components.switch import SwitchEntity
+from google.protobuf.message import Message as ProtoMessageRaw
 from homeassistant.components.number import NumberEntity
 from homeassistant.components.select import SelectEntity
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.util import dt
 
 from custom_components.ecoflow_cloud.devices import const
 from custom_components.ecoflow_cloud.select import PowerDictSelectEntity
 
+from ...api import EcoflowApiClient
+from ...api.message import JSONDict
 from ...devices import BaseDevice
 from ...devices.internal.proto.support import (
     to_lower_camel_case,
 )
-
-from ...api import EcoflowApiClient
-from ...api.message import JSONDict
 from ...sensor import (
     CelsiusSensorEntity,
     CentivoltSensorEntity,
@@ -37,13 +37,10 @@ from ...sensor import (
     ResettingOutEnergySensorEntity,
     StatusSensorEntity,
 )
-
-from google.protobuf.message import Message as ProtoMessageRaw
-
 from ...switch import EnabledEntity
+from ..internal.proto import AddressId, Command, ProtoMessage
 from ..internal.proto import platform_pb2 as platform
 from ..internal.proto import powerstream_pb2 as powerstream
-from ..internal.proto import AddressId, Command, ProtoMessage
 from .proto import PrivateAPIProtoDeviceMixin
 from .proto.support.const import WatthType, get_expected_payload_type
 
@@ -355,10 +352,13 @@ class PowerStream(PrivateAPIProtoDeviceMixin, BaseDevice):
                                 f"{command.func}_{command.id}.{field_name}Timestamp": watth_item.timestamp,
                             }
                         )
+                elif command in {Command.PRIVATE_API_NULL_COMMAND}:
+                    pass
 
                 # Add cmd information to allow extraction in private_api_extract_quota_message
                 res["cmdFunc"] = command_desc.func
                 res["cmdId"] = command_desc.id
+                res["code"] = message.code
                 res["timestamp"] = dt.utcnow()
                 continue
         except Exception as error:
@@ -367,4 +367,4 @@ class PowerStream(PrivateAPIProtoDeviceMixin, BaseDevice):
         return res
 
     def _status_sensor(self, client: EcoflowApiClient) -> StatusSensorEntity:
-        return QuotaStatusSensorEntity(client, self)
+        return QuotaStatusSensorEntity(client, self, offline_barrier_sec=10)

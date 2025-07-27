@@ -20,6 +20,8 @@ class BoundFifoList(list):
         while len(self) >= self.maxlen:
             self.pop()
 
+class DeviceOfflineError(Exception):
+    pass
 
 class EcoflowDataHolder:
     def __init__(
@@ -74,7 +76,10 @@ class EcoflowDataHolder:
     def add_get_reply_message(self, msg: dict[str, Any]):
         try:
             result = self.extract_quota_message(msg)
-        except:
+        except DeviceOfflineError:
+            # Do not update get_reply_time to make the QuotaStatusSensor work properly.
+            return
+        except Exception:
             result = None
 
         if result is not None:

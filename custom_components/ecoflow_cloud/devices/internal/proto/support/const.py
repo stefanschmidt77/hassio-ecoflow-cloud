@@ -38,6 +38,10 @@ class Command(enum.Enum):
     def id(self) -> int:
         return self.value.id
 
+    PRIVATE_API_NULL_COMMAND = CommandFuncAndId(
+        func=CommandFunc.DEFAULT, id=0
+    )
+
     PRIVATE_API_POWERSTREAM_HEARTBEAT = CommandFuncAndId(
         func=CommandFunc.POWERSTREAM, id=1
     )
